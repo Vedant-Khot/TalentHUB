@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: talenthub_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: talenthub
+      POSTGRES_PASSWORD: talenthub_secure_password_2026
+      POSTGRES_DB: talenthub
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U talenthub"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: talenthub_backend
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://talenthub:talenthub_secure_password_2026@db:5432/talenthub
+      SYNC_DATABASE_URL: postgresql://talenthub:talenthub_secure_password_2026@db:5432/talenthub
+      SECRET_KEY: production-secure-secret-key-change-before-public-launch-2026
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./storage:/storage
+
+volumes:
+  postgres_data:
